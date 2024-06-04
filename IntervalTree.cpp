@@ -2,7 +2,7 @@
 #include "intervalTree.h"
 
 
-void TreeNode::Silce(double B)
+void TreeNode::Slice(double B)
 {
 	if (B <= leftB || B >= rightB)
 	{
@@ -10,8 +10,8 @@ void TreeNode::Silce(double B)
 	}
 	if (leftNode == NULL && rightNode == NULL)
 	{
-		TreeNode *NNode = NextNode; // 叶子节点组成链表
-		TreeNode *LNode = LastNode; // 叶子节点组成链表
+		TreeNode* NNode = NextNode; // 叶子节点组成链表
+		TreeNode* LNode = LastNode; // 叶子节点组成链表
 		LastNode = NextNode = NULL;
 		this->midB = B;
 
@@ -28,11 +28,11 @@ void TreeNode::Silce(double B)
 	{
 		if (B <= midB)
 		{
-			this->leftNode->Silce(B);
+			this->leftNode->Slice(B);
 		}
 		else
 		{
-			this->rightNode->Silce(B);
+			this->rightNode->Slice(B);
 		}
 	}
 }
@@ -52,9 +52,9 @@ void TreeNode::addValue(double LB, double RB, double AddValue)
 			throw std::exception("value < 0");
 		}
 		if (this->rightNode != NULL)
-			this->rightNode->addValue(LB, midB, value);
+			this->rightNode->addValue(midB, RB, AddValue);
 		if (this->leftNode != NULL)
-			this->rightNode->addValue(midB, RB, value);
+			this->leftNode->addValue(LB, midB, AddValue);
 		return;
 	}
 	else
@@ -62,7 +62,7 @@ void TreeNode::addValue(double LB, double RB, double AddValue)
 		if (leftNode == NULL || rightNode == NULL)
 		{
 			double MB = abs(2 * LB - leftB - rightB) > abs(2 * RB - leftB - rightB) ? RB : LB;
-			this->Silce(MB);
+			this->Slice(MB);
 		}
 		if (RB <= midB)
 		{
@@ -82,6 +82,7 @@ void TreeNode::addValue(double LB, double RB, double AddValue)
 		value = Lvalue > Rvalue ? Rvalue : Lvalue;
 	}
 }
+
 double TreeNode::getLeftB()
 {
 	return leftB;
@@ -92,12 +93,12 @@ double TreeNode::getRightB()
 	return rightB;
 }
 
-double TreeNode::getValue()
+double TreeNode::getValue() const
 {
 	return value;
 }
 
-double TreeNode::getValue(double point)
+double TreeNode::getValue(double point) const
 {
 	if (point < leftB || point > rightB)
 	{
@@ -116,7 +117,33 @@ double TreeNode::getValue(double point)
 	}
 }
 
-TreeNode *TreeNode::getInterval(double point)
+
+double TreeNode::getRightValue(double point) const {
+	// 获取该点往右的最小值
+	if (point < leftB || point > rightB)
+	{
+		return -1;
+	}
+	if (leftNode == NULL || rightNode == NULL)
+	{
+		return getValue();
+	}
+	else
+	{
+		if (point < midB)
+		{
+			double Lvalue = leftNode->getValue(point);
+			double Rvalue = rightNode->getValue();
+			return Lvalue > Rvalue ? Rvalue : Lvalue;
+		}
+		else
+			return rightNode->getRightValue(point);
+	}
+
+
+}
+
+TreeNode* TreeNode::getInterval(double point)
 {
 	if (point < leftB || point > rightB)
 	{
@@ -135,7 +162,7 @@ TreeNode *TreeNode::getInterval(double point)
 	}
 }
 
-double TreeNode::getRightArea()
+double TreeNode::getRightArea() const
 {
 	if (this->rightNode != NULL)
 		return this->rightNode->getRightArea();
@@ -143,7 +170,7 @@ double TreeNode::getRightArea()
 		return this->value * (this->rightB - this->leftB);
 }
 
-double TreeNode::getLeftArea()
+double TreeNode::getLeftArea() const
 {
 	if (this->leftNode != NULL)
 		return this->leftNode->getLeftArea();
@@ -151,16 +178,16 @@ double TreeNode::getLeftArea()
 		return this->value * (this->rightB - this->leftB);
 }
 
-TreeNode *TreeNode::getNextNode()
+TreeNode* TreeNode::getNextNode()
 {
 	return NextNode;
 }
-TreeNode *TreeNode::getLastNode()
+TreeNode* TreeNode::getLastNode()
 {
 	return LastNode;
 }
 
-TreeNode *TreeNode::releaseLeft(double B)
+TreeNode* TreeNode::releaseLeft(double B)
 {
 	if (leftNode == NULL && rightNode == NULL)
 	{
@@ -178,7 +205,7 @@ TreeNode *TreeNode::releaseLeft(double B)
 	{
 		if (B <= midB)
 		{
-			TreeNode *left = NULL;
+			TreeNode* left = NULL;
 			left = this->leftNode->releaseLeft(B);
 			if (left != this->leftNode)
 			{
@@ -188,7 +215,7 @@ TreeNode *TreeNode::releaseLeft(double B)
 		}
 		else
 		{
-			TreeNode *right = NULL;
+			TreeNode* right = NULL;
 			right = rightNode->releaseLeft(B);
 			if (right != this->rightNode)
 			{
@@ -198,38 +225,47 @@ TreeNode *TreeNode::releaseLeft(double B)
 				leftNode = NULL;
 			}
 		}
-		if (leftNode == NULL)
-			return rightNode;
+		if (leftNode == NULL) {
+			TreeNode* r = rightNode;
+			rightNode = NULL;
+			return r;
+		}
 		else
 		{
 			double Lvalue = leftNode == NULL ? LDBL_MAX : leftNode->getValue();
 			double Rvalue = rightNode == NULL ? -1 : rightNode->getValue();
 			value = Lvalue > Rvalue ? Rvalue : Lvalue;
+			leftB = leftNode->getLeftB();
 			return this;
 		}
 	}
 }
 
+TreeNode* IntervalTree::getInterval(double point)
+{
+	return root->getInterval(point);
+}
+
+void IntervalTree::Slice(double B) {
+	extend(B);
+	this->root->Slice(B);
+}
+
+
 void IntervalTree::extend(double rightB)
 {
-	double nowRB = this->root->getRightB();
-	if (rightB <= nowRB)
-	{
-		return;
+	while (this->root->getRightB() < rightB) {
+		auto Last = List->getLastNode();
+		root = new TreeNode(root, rightB, defualtValue, List, Last);
 	}
-	auto Last = List->getLastNode();
-	root = new TreeNode(root, rightB, defualtValue, List, Last);
 }
 
 void IntervalTree::extend(double rightB, double value)
 {
-	double nowRB = this->root->getRightB();
-	if (rightB <= nowRB)
-	{
-		return;
+	while (this->root->getRightB() < rightB) {
+		auto Last = List->getLastNode();
+		root = new TreeNode(root, rightB, value, List, Last);
 	}
-	auto Last = List->getLastNode();
-	root = new TreeNode(root, rightB, value, List, Last);
 }
 
 void IntervalTree::addValue(double LB, double RB, double value)
@@ -238,7 +274,7 @@ void IntervalTree::addValue(double LB, double RB, double value)
 	double LeftB = root->getLeftB();
 	if (rightB < RB)
 	{
-		extend(RB);
+		intoNextWindows(RB);
 	}
 	if (LeftB > LB)
 	{
@@ -247,25 +283,54 @@ void IntervalTree::addValue(double LB, double RB, double value)
 	this->root->addValue(LB, RB, value);
 }
 
-double IntervalTree::getValue(double point)
+double IntervalTree::getValue(double point) const
 {
 	return this->root->getValue(point);
 }
 
+
+void IntervalTree::releaseLeft(double B) {
+	intoNextWindows(B);
+	double RealseB = int((B - lastLeftB) / windows - 1) * windows + lastLeftB;
+	double LB = root->getLeftB();
+	if (RealseB > LB) {
+		root->releaseLeft(RealseB);
+	}
+}
+
 void IntervalTree::intoNextWindows()
 {
-	
-	extend(root->getRightB() + windows);
+	double Right = (int((root->getRightB() - lastLeftB) / windows) + 1) * windows + lastLeftB;
+	extend(Right);
+}
 
+void IntervalTree::intoNextWindows(double x)
+{
+	if (x > root->getRightB()) {
+		double Right = (int((x - lastLeftB) / windows) + 1) * windows + lastLeftB;
+		extend(Right);
+	}
+}
+
+void IntervalTree::changeDefualtValue(double now, double Value) {
+	intoNextWindows(now);
+	//auto node = List->getLastNode();
+	double RB = root->getRightB();
+	double Pvalue = root->getRightValue(now);
+	if (Pvalue < Value) {
+		throw std::range_error("now has Task running");
+	}
+	addValue(now, RB, Value - defualtValue);
+	defualtValue = Value;
 }
 
 double IntervalTree::AllocatedArea_DD(double startPoint, double targetArea)
 {
 	// 返回的值为从startPoint开始分配的高
-	TreeNode *Node = getInterval(startPoint);
+	TreeNode* Node = getInterval(startPoint);
 	double hight = Node == List ? -1 : DBL_MAX;
 	// std::cout << viewList() << std::endl;
-	while (Node != List && hight > 0.001)
+	while (Node != List && hight > 0.001 && Node != NULL)
 	{
 		double RB = Node->getRightB();
 		double value = Node->getValue();
@@ -274,7 +339,7 @@ double IntervalTree::AllocatedArea_DD(double startPoint, double targetArea)
 			break;
 		Node = Node->getNextNode();
 	}
-	return Node == List || hight < 0.001 ? -1 : hight;
+	return Node == List || hight < 0.001 || Node == NULL ? -1 : hight;
 }
 
 double IntervalTree::AllocatedArea_DDD(double startPoint, double targetArea, double hight)
@@ -282,10 +347,10 @@ double IntervalTree::AllocatedArea_DDD(double startPoint, double targetArea, dou
 	// 返回的值为最接近(往后)满足高为hight，面积为targetArea的区块的起点
 	if (hight <= 0)
 		return root->getRightB();
-	while(startPoint > root->getRightB()) {
-		intoNextWindows();
-	}
-	TreeNode *Node = getInterval(startPoint);
+
+	intoNextWindows(startPoint);
+
+	TreeNode* Node = getInterval(startPoint);
 	double leftArea = 0;
 	double ansPoint = startPoint;
 	while (Node != List && Node != NULL)
@@ -305,15 +370,10 @@ double IntervalTree::AllocatedArea_DDD(double startPoint, double targetArea, dou
 		}
 		Node = Node->getNextNode();
 	}
-	return root->getRightB();
+	return hight > defualtValue ? -1 : ansPoint;
 }
 
-TreeNode *IntervalTree::getInterval(double point)
-{
-	return root->getInterval(point);
-}
-
-std::string IntervalTree::viewList()
+std::string IntervalTree::viewList() const
 {
 	std::ostringstream stream;
 	auto NextNode = List->getNextNode();

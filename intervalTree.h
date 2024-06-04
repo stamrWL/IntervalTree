@@ -15,8 +15,8 @@ private:
 	double midB;
 	double value;
 protected:
-	TreeNode* NextNode;	//Ҷ�ӽڵ��������
-	TreeNode* LastNode;	//Ҷ�ӽڵ��������
+	TreeNode* NextNode;	
+	TreeNode* LastNode;	
 
 public:
 
@@ -55,7 +55,7 @@ public:
 		if (this->rightNode != NULL)
 			delete this->rightNode;
 	}
-	void Silce(double B);
+	void Slice(double B);
 	void addValue(double LB, double RB, double value);
 	void setNextNode(TreeNode* NextList) { 
 		this->NextNode = NextList;
@@ -67,11 +67,12 @@ public:
 	}
 	double getLeftB();
 	double getRightB();
-	double getValue();
-	double getValue(double point);
-	TreeNode* getInterval(double point);
-	double getRightArea();
-	double getLeftArea();
+	double getValue() const;
+	double getValue(double point) const;
+	double getRightValue(double point) const;
+	TreeNode* getInterval(double point) ;
+	double getRightArea() const;
+	double getLeftArea() const;
 	TreeNode* getNextNode();
 	TreeNode* getLastNode();
 	TreeNode* releaseLeft(double B);
@@ -84,8 +85,12 @@ private:
 	double lastLeftB;
 	double windows;
 	double defualtValue;
+	// 
 protected:
 	TreeNode* getInterval(double point);
+	void Slice(double B);
+	void extend(double rightB);
+	void extend(double rightB, double value);
 public:
 	IntervalTree(double defualtValue, double lastLeftB = 0, double windows = 30) {
 		this->root = new TreeNode(lastLeftB, windows, defualtValue);
@@ -98,12 +103,13 @@ public:
 		this->lastLeftB = lastLeftB;
 		this->defualtValue = defualtValue;
 	}
-	void extend(double rightB);
-	void extend(double rightB, double value);
 	void addValue(double LB, double RB, double value);
-	double getValue(double point);
+	double getValue(double point) const;
+	void releaseLeft(double B);
 	void intoNextWindows();
+	void intoNextWindows(double x);
+	void changeDefualtValue(double now,double Value);
 	double AllocatedArea_DD(double startPoint, double targetArea);
 	double AllocatedArea_DDD(double startPoint, double targetArea, double hight);
-	std::string viewList();
+	std::string viewList()const;
 };
