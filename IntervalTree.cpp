@@ -1,6 +1,12 @@
 ﻿
 #include "intervalTree.h"
 
+void TreeNode::Delete() {
+	if (NextNode != nullptr)
+		NextNode->setLastNode(LastNode);
+	if (LastNode != nullptr)
+		LastNode->setNextNode(NextNode);
+}
 
 void TreeNode::Slice(double B)
 {
@@ -8,15 +14,15 @@ void TreeNode::Slice(double B)
 	{
 		return;
 	}
-	if (leftNode == NULL && rightNode == NULL)
+	if (leftNode == nullptr && rightNode == nullptr)
 	{
-		TreeNode* NNode = NextNode; // 叶子节点组成链表
-		TreeNode* LNode = LastNode; // 叶子节点组成链表
-		LastNode = NextNode = NULL;
+		std::shared_ptr<TreeNode> NNode = NextNode; // 叶子节点组成链表
+		std::shared_ptr<TreeNode> LNode = LastNode; // 叶子节点组成链表
+		LastNode = NextNode = nullptr;
 		this->midB = B;
 
-		this->leftNode = new TreeNode(leftB, midB, value);
-		this->rightNode = new TreeNode(midB, rightB, value);
+		this->leftNode = TreeNode::Create(leftB, midB, value);
+		this->rightNode = TreeNode::Create(midB, rightB, value);
 		this->leftNode->setLastNode(LNode);
 		this->leftNode->setNextNode(this->rightNode);
 		this->rightNode->setLastNode(this->leftNode);
@@ -51,15 +57,15 @@ void TreeNode::addValue(double LB, double RB, double AddValue)
 			std::cout << "value < 0" << std::endl;
 			throw std::exception("value < 0");
 		}
-		if (this->rightNode != NULL)
+		if (this->rightNode != nullptr)
 			this->rightNode->addValue(midB, RB, AddValue);
-		if (this->leftNode != NULL)
+		if (this->leftNode != nullptr)
 			this->leftNode->addValue(LB, midB, AddValue);
 		return;
 	}
 	else
 	{
-		if (leftNode == NULL || rightNode == NULL)
+		if (leftNode == nullptr || rightNode == nullptr)
 		{
 			double MB = abs(2 * LB - leftB - rightB) > abs(2 * RB - leftB - rightB) ? RB : LB;
 			this->Slice(MB);
@@ -104,7 +110,7 @@ double TreeNode::getValue(double point) const
 	{
 		return -1;
 	}
-	if (leftNode == NULL || rightNode == NULL)
+	if (leftNode == nullptr || rightNode == nullptr)
 	{
 		return getValue();
 	}
@@ -124,7 +130,7 @@ double TreeNode::getRightValue(double point) const {
 	{
 		return -1;
 	}
-	if (leftNode == NULL || rightNode == NULL)
+	if (leftNode == nullptr || rightNode == nullptr)
 	{
 		return getValue();
 	}
@@ -143,15 +149,15 @@ double TreeNode::getRightValue(double point) const {
 
 }
 
-TreeNode* TreeNode::getInterval(double point)
+std::shared_ptr<TreeNode> TreeNode::getInterval(double point)
 {
 	if (point < leftB || point > rightB)
 	{
-		return NULL;
+		return nullptr;
 	}
-	if (leftNode == NULL || rightNode == NULL)
+	if (leftNode == nullptr || rightNode == nullptr)
 	{
-		return this;
+		return shared_from_this();
 	}
 	else
 	{
@@ -164,7 +170,7 @@ TreeNode* TreeNode::getInterval(double point)
 
 double TreeNode::getRightArea() const
 {
-	if (this->rightNode != NULL)
+	if (this->rightNode != nullptr)
 		return this->rightNode->getRightArea();
 	else
 		return this->value * (this->rightB - this->leftB);
@@ -172,76 +178,76 @@ double TreeNode::getRightArea() const
 
 double TreeNode::getLeftArea() const
 {
-	if (this->leftNode != NULL)
+	if (this->leftNode != nullptr)
 		return this->leftNode->getLeftArea();
 	else
 		return this->value * (this->rightB - this->leftB);
 }
 
-TreeNode* TreeNode::getNextNode()
+std::shared_ptr<TreeNode> TreeNode::getNextNode()
 {
 	return NextNode;
 }
-TreeNode* TreeNode::getLastNode()
+std::shared_ptr<TreeNode> TreeNode::getLastNode()
 {
 	return LastNode;
 }
 
-TreeNode* TreeNode::releaseLeft(double B)
+std::shared_ptr<TreeNode> TreeNode::releaseLeft(double B)
 {
-	if (leftNode == NULL && rightNode == NULL)
+	if (leftNode == nullptr && rightNode == nullptr)
 	{
 		if (rightB <= B)
 		{
-			return NULL;
+			return nullptr;
 		}
 		else
 		{
 			leftB = B > leftB ? B : leftB;
-			return this;
+			return shared_from_this();
 		}
 	}
 	else
 	{
 		if (B <= midB)
 		{
-			TreeNode* left = NULL;
+			std::shared_ptr<TreeNode> left = nullptr;
 			left = this->leftNode->releaseLeft(B);
 			if (left != this->leftNode)
 			{
-				delete leftNode;
+				leftNode->Delete();
 				leftNode = left;
 			}
 		}
 		else
 		{
-			TreeNode* right = NULL;
+			std::shared_ptr<TreeNode> right = nullptr;
 			right = rightNode->releaseLeft(B);
 			if (right != this->rightNode)
 			{
-				delete leftNode;
-				delete rightNode;
+				leftNode->Delete();
+				rightNode->Delete();
 				rightNode = right;
-				leftNode = NULL;
+				leftNode = nullptr;
 			}
 		}
-		if (leftNode == NULL) {
-			TreeNode* r = rightNode;
-			rightNode = NULL;
+		if (leftNode == nullptr) {
+			std::shared_ptr<TreeNode> r = rightNode;
+			rightNode = nullptr;
 			return r;
 		}
 		else
 		{
-			double Lvalue = leftNode == NULL ? LDBL_MAX : leftNode->getValue();
-			double Rvalue = rightNode == NULL ? -1 : rightNode->getValue();
+			double Lvalue = leftNode == nullptr ? LDBL_MAX : leftNode->getValue();
+			double Rvalue = rightNode == nullptr ? -1 : rightNode->getValue();
 			value = Lvalue > Rvalue ? Rvalue : Lvalue;
 			leftB = leftNode->getLeftB();
-			return this;
+			return shared_from_this();
 		}
 	}
 }
 
-TreeNode* IntervalTree::getInterval(double point)
+std::shared_ptr<TreeNode> IntervalTree::getInterval(double point)
 {
 	return root->getInterval(point);
 }
@@ -256,7 +262,7 @@ void IntervalTree::extend(double rightB)
 {
 	while (this->root->getRightB() < rightB) {
 		auto Last = List->getLastNode();
-		root = new TreeNode(root, rightB, defualtValue, List, Last);
+		root = TreeNode::Create(root, rightB, defualtValue, List, Last);
 	}
 }
 
@@ -264,7 +270,7 @@ void IntervalTree::extend(double rightB, double value)
 {
 	while (this->root->getRightB() < rightB) {
 		auto Last = List->getLastNode();
-		root = new TreeNode(root, rightB, value, List, Last);
+		root = TreeNode::Create(root, rightB, value, List, Last);
 	}
 }
 
@@ -327,10 +333,10 @@ void IntervalTree::changeDefualtValue(double now, double Value) {
 double IntervalTree::AllocatedArea_DD(double startPoint, double targetArea)
 {
 	// 返回的值为从startPoint开始分配的高
-	TreeNode* Node = getInterval(startPoint);
+	std::shared_ptr<TreeNode> Node = getInterval(startPoint);
 	double hight = Node == List ? -1 : DBL_MAX;
 	// std::cout << viewList() << std::endl;
-	while (Node != List && hight > 0.001 && Node != NULL)
+	while (Node != List && hight > 0.001 && Node != nullptr)
 	{
 		double RB = Node->getRightB();
 		double value = Node->getValue();
@@ -339,7 +345,7 @@ double IntervalTree::AllocatedArea_DD(double startPoint, double targetArea)
 			break;
 		Node = Node->getNextNode();
 	}
-	return Node == List || hight < 0.001 || Node == NULL ? -1 : hight;
+	return Node == List || hight < 0.001 || Node == nullptr ? -1 : hight;
 }
 
 double IntervalTree::AllocatedArea_DDD(double startPoint, double targetArea, double hight)
@@ -350,10 +356,10 @@ double IntervalTree::AllocatedArea_DDD(double startPoint, double targetArea, dou
 
 	intoNextWindows(startPoint);
 
-	TreeNode* Node = getInterval(startPoint);
+	std::shared_ptr<TreeNode> Node = getInterval(startPoint);
 	double leftArea = 0;
 	double ansPoint = startPoint;
-	while (Node != List && Node != NULL)
+	while (Node != List && Node != nullptr)
 	{
 		if (Node->getValue() < hight)
 		{
@@ -384,3 +390,13 @@ std::string IntervalTree::viewList() const
 	}
 	return stream.str();
 }
+
+
+// int main() {
+// 	IntervalTree A(0.4, 0, 5);
+// 	A.releaseLeft(0.000001);
+// 	A.releaseLeft(5.000001);
+// 	A.releaseLeft(10.000001);
+// 	std::cout<<A.viewList();
+// 	return 0;
+// }

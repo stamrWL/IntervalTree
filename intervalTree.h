@@ -4,64 +4,70 @@
 #include <string.h>
 #include <cmath>
 #include <stdexcept>
+#include <memory>
 
-class TreeNode {
+class TreeNode : public std::enable_shared_from_this<TreeNode>{
 private:
-	TreeNode* leftNode;
-	TreeNode* rightNode;
+	std::shared_ptr<TreeNode> leftNode;
+	std::shared_ptr<TreeNode> rightNode;
 	
 	double leftB;
 	double rightB;
 	double midB;
 	double value;
 protected:
-	TreeNode* NextNode;	
-	TreeNode* LastNode;	
+	std::shared_ptr<TreeNode> NextNode;
+	std::shared_ptr<TreeNode> LastNode;
 
 public:
 
-	TreeNode(double leftB, double rightB, double value, TreeNode* NextNode = NULL, TreeNode* LastNode = NULL) {
+	TreeNode(double leftB, double rightB, double value, std::shared_ptr<TreeNode> NextNode = nullptr, std::shared_ptr<TreeNode> LastNode = nullptr) {
 		this->leftB = leftB;
 		this->rightB = rightB;
 		this->value = value;
 		this->midB = -1;
-		this->leftNode = this->rightNode = NULL;
+		this->leftNode = this->rightNode = nullptr;
 
 		this->NextNode = NextNode;
 		this->LastNode = LastNode;
-		if(this->LastNode != NULL)
-			this->LastNode->setNextNode(this);
-		if (this->NextNode != NULL)
-			this->NextNode->setLastNode(this);
 	}
-	TreeNode(TreeNode* leftNode, double rightB, double value, TreeNode* NextNode = NULL, TreeNode * LastNode = NULL) {
+
+	static std::shared_ptr<TreeNode> Create(double leftB, double rightB, double value, std::shared_ptr<TreeNode> NextNode = nullptr, std::shared_ptr<TreeNode> LastNode = nullptr) {
+		auto Prt = std::make_shared< TreeNode>(leftB, rightB, value, NextNode, LastNode);
+		if (LastNode != nullptr)
+			Prt->LastNode->setNextNode(Prt);
+		if (NextNode != nullptr)
+			Prt->NextNode->setLastNode(Prt);
+		return Prt;
+	}
+
+	TreeNode(std::shared_ptr<TreeNode> leftNode, double rightB, double value, std::shared_ptr<TreeNode> NextNode = nullptr, std::shared_ptr<TreeNode> LastNode = nullptr) {
 		this->leftB = leftNode->getLeftB();
 		this->rightB = rightB;
 		this->value = value < leftNode->getValue()?value:leftNode->getValue();
 		this->midB = leftNode->getRightB();
 		this->leftNode = leftNode;
-		this->rightNode = new TreeNode(midB, rightB, value, NextNode, LastNode);
+		this->rightNode = TreeNode::Create(midB, rightB, value, NextNode, LastNode);
+	}
 
+	void Delete();
+
+	static void Delete(std::shared_ptr<TreeNode> Node) {
+		Node->Delete();
 	}
-	~TreeNode() {
-		if (leftNode == NULL && rightNode == NULL) {
-			if (NextNode != NULL)
-				NextNode->setLastNode(LastNode);
-			if (LastNode != NULL)
-				LastNode->setNextNode(NextNode);
-		}
-		if (this->leftNode != NULL)
-			delete this->leftNode;
-		if (this->rightNode != NULL)
-			delete this->rightNode;
+
+	static std::shared_ptr<TreeNode> Create(std::shared_ptr<TreeNode> leftNode, double rightB, double value, std::shared_ptr<TreeNode> NextNode = nullptr, std::shared_ptr<TreeNode> LastNode = nullptr) {
+		auto Prt = std::make_shared< TreeNode>(leftNode, rightB, value, NextNode, LastNode);
+		return Prt;
 	}
+
 	void Slice(double B);
 	void addValue(double LB, double RB, double value);
-	void setNextNode(TreeNode* NextList) { 
+	void setNextNode(std::shared_ptr<TreeNode> NextList) { 
 		this->NextNode = NextList;
 		//NextList->setLastNode(this);
 	}
-	void setLastNode(TreeNode* LastNode) { 
+	void setLastNode(std::shared_ptr<TreeNode> LastNode) { 
 		this->LastNode = LastNode;
 		//LastNode->setNextNode(this);
 	}
@@ -70,31 +76,31 @@ public:
 	double getValue() const;
 	double getValue(double point) const;
 	double getRightValue(double point) const;
-	TreeNode* getInterval(double point) ;
+	std::shared_ptr<TreeNode> getInterval(double point) ;
 	double getRightArea() const;
 	double getLeftArea() const;
-	TreeNode* getNextNode();
-	TreeNode* getLastNode();
-	TreeNode* releaseLeft(double B);
+	std::shared_ptr<TreeNode> getNextNode();
+	std::shared_ptr<TreeNode> getLastNode();
+	std::shared_ptr<TreeNode> releaseLeft(double B);
 };
 
 class IntervalTree {
 private:
-	TreeNode* root;
-	TreeNode* List;
+	std::shared_ptr<TreeNode> root;
+	std::shared_ptr<TreeNode> List;
 	double lastLeftB;
 	double windows;
 	double defualtValue;
 	// 
 protected:
-	TreeNode* getInterval(double point);
+	std::shared_ptr<TreeNode> getInterval(double point);
 	void Slice(double B);
 	void extend(double rightB);
 	void extend(double rightB, double value);
 public:
 	IntervalTree(double defualtValue, double lastLeftB = 0, double windows = 30) {
-		this->root = new TreeNode(lastLeftB, windows, defualtValue);
-		this->List = new TreeNode(-1, -1, -1);
+		this->root = std::make_shared<TreeNode>(lastLeftB, windows, defualtValue);
+		this->List = std::make_shared<TreeNode>(-1, -1, -1);
 		this->root->setNextNode(this->List);
 		this->root->setLastNode(this->List);
 		this->List->setNextNode(this->root);
